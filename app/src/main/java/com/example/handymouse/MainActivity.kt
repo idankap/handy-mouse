@@ -73,6 +73,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val leftButton = findViewById<Button>(R.id.left)
+        leftButton.setOnClickListener {
+
+        }
+        val middleButton = findViewById<Button>(R.id.middle)
+        middleButton.setOnClickListener {
+
+        }
+        val rightButton = findViewById<Button>(R.id.right)
+        rightButton.setOnClickListener {
+
+        }
+
 //        bluetoothManager.adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid)
     }
 }
