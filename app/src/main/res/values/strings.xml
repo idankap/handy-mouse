@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Handy Mouse</string>
+    <string name="app_description">Turn your phone into a handy bluetooth mouse</string>
+    <string name="creator">Michi</string>
+</resources>
