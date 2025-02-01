@@ -46,37 +46,30 @@ class MainActivity : AppCompatActivity() {
     ).map { it.toByte() }.toByteArray()
 
     private val enableDiscoverableLauncher = registerForActivityResult(StartActivityForResult()) {
-        Log.i("permission", "discoverablePermission: ${it.resultCode}")
         if (it.resultCode == 120) {
             start()
         }
     }
 
     private val enableBluetoothLauncher = registerForActivityResult(StartActivityForResult()) {
-        if (it.resultCode == Activity.RESULT_OK) {
-            enabledBluetoothRequirements = true
-        } else {
-            enabledBluetoothRequirements = false
+        if (it.resultCode != Activity.RESULT_OK) {
+            // TODO: alert the user why he need to allow bluetooth
         }
     }
 
     private val BLUETOOTH_CONNECT_RQ = 1
-    private var enabledBluetoothRequirements = false
 
-    private fun bluetoothPreprocess() {
-        val bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
+    private var bluetoothAction = {}
 
-        if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            enabledBluetoothRequirements = false
+    private fun callBluetoothAction(action: () -> Unit) {
+        if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+            action()
+        } else {
+            bluetoothAction = action
             requestPermissions(
                 arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
                 BLUETOOTH_CONNECT_RQ
             )
-        } else if (!bluetoothManager.adapter.isEnabled) {
-            enabledBluetoothRequirements = false
-            enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
-        } else {
-            enabledBluetoothRequirements = true
         }
     }
 
@@ -87,38 +80,27 @@ class MainActivity : AppCompatActivity() {
     ) {
         when (requestCode) {
             BLUETOOTH_CONNECT_RQ -> {
-                // If request is cancelled, the result arrays are empty.
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    val bluetoothManager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
-                    if (!bluetoothManager.adapter.isEnabled) {
-                        enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
-                    }
+                    bluetoothAction()
+                    bluetoothAction = {}
                 } else {
-                    enabledBluetoothRequirements = false
+                    // TODO: alert the user why he need to allow bluetooth
                 }
-                return
-            }
-
-            // Add other 'when' lines to check for other
-            // permissions this app might request.
-            else -> {
-                // Ignore all other requests.
             }
         }
 
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        bluetoothPreprocess()
-
         val advertiseButton = findViewById<Button>(R.id.advertise)
         advertiseButton.setOnClickListener {
-            bluetoothPreprocess()
-            enableDiscoverableLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE))
+            callBluetoothAction {
+                enableDiscoverableLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE))
+            }
         }
 
 //        bluetoothManager.adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid)
