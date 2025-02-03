@@ -14,8 +14,8 @@ class MainActivity : AppCompatActivity() {
     private var hidService: HidService? = null
 
     private val enableDiscoverableLauncher = registerForActivityResult(StartActivityForResult()) {
-        if (it.resultCode == 120) {
-            hidService!!.registerHid()
+        if (it.resultCode != 120) {
+            // TODO: alert the user why he need to be discoverable
         }
     }
 
@@ -85,7 +85,10 @@ class MainActivity : AppCompatActivity() {
         rightButton.setOnClickListener {
 
         }
+    }
 
-//        bluetoothManager.adapter.closeProfileProxy(BluetoothProfile.HID_DEVICE, hid)
+    override fun onStart() {
+        hidService?.register()
+        super.onStart()
     }
 }

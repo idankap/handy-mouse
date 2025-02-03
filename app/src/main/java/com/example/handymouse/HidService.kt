@@ -18,6 +18,8 @@ class HidService(base: Context?) : ContextWrapper(base) {
 
     private var hid: BluetoothHidDevice? = null
 
+    private var deviceConnectedTo: BluetoothDevice? = null
+
     private val reportDescriptor = listOf(
         0x05, 0x01,     // Usage Page (Generic Desktop)
         0x09, 0x02,     // Usage (Mouse)
@@ -56,11 +58,24 @@ class HidService(base: Context?) : ContextWrapper(base) {
     )
 
     private val hidCallback = object : BluetoothHidDevice.Callback() {
+        @SuppressLint("MissingPermission")
+        override fun onAppStatusChanged(pluggedDevice: BluetoothDevice?, registered: Boolean) {
+            Log.i(TAG, "App status changed, registered: $registered, pluggedDevice: $pluggedDevice")
+            if (registered && pluggedDevice != null) {
+                hid!!.connect(pluggedDevice)
+            }
+        }
         override fun onConnectionStateChanged(device: BluetoothDevice, state: Int) {
             when (state) {
-                BluetoothProfile.STATE_CONNECTED -> Log.i(TAG, "Connected to $device")
+                BluetoothProfile.STATE_CONNECTED -> {
+                    Log.i(TAG, "Connected to $device")
+                    deviceConnectedTo = device
+                }
                 BluetoothProfile.STATE_CONNECTING -> Log.i(TAG, "Connecting to $device")
-                BluetoothProfile.STATE_DISCONNECTED -> Log.i(TAG, "Disconnected from $device")
+                BluetoothProfile.STATE_DISCONNECTED -> {
+                    Log.i(TAG, "Disconnected from $device")
+                    deviceConnectedTo = null
+                }
                 BluetoothProfile.STATE_DISCONNECTING -> Log.i(TAG, "Disconnecting from $device")
             }
         }
@@ -70,7 +85,7 @@ class HidService(base: Context?) : ContextWrapper(base) {
         @SuppressLint("MissingPermission")
         override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
             if (profile == BluetoothProfile.HID_DEVICE) {
-                Log.i(TAG, "onServiceConnected with an HID device")
+                Log.i(TAG, "HID service connected")
                 hid = proxy as BluetoothHidDevice
                 hid!!.registerApp(sdp, null, null, Executors.newSingleThreadExecutor(), hidCallback)
             }
@@ -79,16 +94,14 @@ class HidService(base: Context?) : ContextWrapper(base) {
         @SuppressLint("MissingPermission")
         override fun onServiceDisconnected(profile: Int) {
             if (profile == BluetoothProfile.HID_DEVICE) {
-                Log.i(TAG, "onServiceDisconnected with an HID device")
-                hid!!.unregisterApp()
+                Log.i(TAG, "HID service disconnected")
+                hid?.unregisterApp()
                 hid = null
             }
         }
     }
 
-    @SuppressLint("MissingPermission")
-    fun registerHid() {
-        Log.i(TAG, "Bluetooth adapter name: ${bluetoothManager.adapter.name}")
+    fun register() {
         bluetoothManager.adapter.getProfileProxy(this, profileListener, BluetoothProfile.HID_DEVICE)
     }
 }
